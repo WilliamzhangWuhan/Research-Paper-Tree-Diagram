@@ -1,0 +1,65 @@
+{
+  "tree_structure": {
+    "sub1": [],
+    "sub1:sub11": [
+      1
+    ],
+    "sub2": [],
+    "sub2:sub21": [
+      2
+    ],
+    "sub1:sub12": [
+      3
+    ],
+    "sub3": [],
+    "sub3:sub31": [
+      4
+    ]
+  },
+  "papers": [
+    {
+      "id": 1,
+      "title": "paper title",
+      "category_path": "sub1:sub11"
+    },
+    {
+      "id": 2,
+      "title": "paper title",
+      "category_path": "sub2:sub21"
+    },
+    {
+      "id": 3,
+      "title": "paper title",
+      "category_path": "sub1:sub12"
+    },
+    {
+      "id": 4,
+      "title": "paper title",
+      "category_path": "sub3:sub31"
+    }
+  ],
+  "node_counter": 4,
+  "parent_nodes": {
+    "1": "sub1:sub11",
+    "2": "sub2:sub21",
+    "3": "sub1:sub12",
+    "4": "sub3:sub31"
+  },
+  "category_hierarchy": {
+    "Root": [
+      "sub1",
+      "sub2",
+      "sub3"
+    ],
+    "sub1": [
+      "sub1:sub11",
+      "sub1:sub12"
+    ],
+    "sub2": [
+      "sub2:sub21"
+    ],
+    "sub3": [
+      "sub3:sub31"
+    ]
+  }
+}
