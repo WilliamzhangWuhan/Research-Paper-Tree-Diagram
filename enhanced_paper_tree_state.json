@@ -1,36 +1,36 @@
 {
   "tree_structure": {
-    "sub1": [],
-    "sub1:sub11": [
-      1
-    ],
-    "sub2": [],
-    "sub2:sub21": [
-      2
-    ],
-    "sub1:sub12": [
-      3
-    ],
     "sub3": [],
     "sub3:sub31": [
       4
-    ]
+    ],
+    "bus1": [],
+    "bus1:sub11": [
+      1
+    ],
+    "bus1:sub12": [
+      3
+    ],
+    "sas:sub21": [
+      2
+    ],
+    "sas": []
   },
   "papers": [
     {
       "id": 1,
       "title": "paper title",
-      "category_path": "sub1:sub11"
+      "category_path": "bus1:sub11"
     },
     {
       "id": 2,
       "title": "paper title",
-      "category_path": "sub2:sub21"
+      "category_path": "sas:sub21"
     },
     {
       "id": 3,
       "title": "paper title",
-      "category_path": "sub1:sub12"
+      "category_path": "bus1:sub12"
     },
     {
       "id": 4,
@@ -40,26 +40,26 @@
   ],
   "node_counter": 4,
   "parent_nodes": {
-    "1": "sub1:sub11",
-    "2": "sub2:sub21",
-    "3": "sub1:sub12",
+    "1": "bus1:sub11",
+    "2": "sas:sub21",
+    "3": "bus1:sub12",
     "4": "sub3:sub31"
   },
   "category_hierarchy": {
     "Root": [
-      "sub1",
-      "sub2",
-      "sub3"
-    ],
-    "sub1": [
-      "sub1:sub11",
-      "sub1:sub12"
-    ],
-    "sub2": [
-      "sub2:sub21"
+      "sub3",
+      "bus1",
+      "sas"
     ],
     "sub3": [
       "sub3:sub31"
+    ],
+    "bus1": [
+      "bus1:sub11",
+      "bus1:sub12"
+    ],
+    "sas": [
+      "sas:sub21"
     ]
   }
 }

@@ -12,6 +12,7 @@ A comprehensive tree-structured paper classification system with subcategory sup
 - 🗂️ **Subcategory Support**: Create nested categories with unlimited depth
 - 📚 **Paper References**: Display complete paper titles below the tree structure
 - 🗑️ **Deletion Management**: Delete papers by ID or entire categories
+- 🔀 **Category Merging**: Merge multiple categories into one with automatic subcategory relocation
 - 🔍 **Category Hierarchy**: View and manage category relationships
 
 ## 🚀 Installation
@@ -86,9 +87,139 @@ Deleted category 'Machine Learning' and all its papers
 - `categories` - Show category hierarchy
 - `delete paper ID` - Delete paper by ID (e.g., `delete paper 1`)
 - `delete category NAME` - Delete category and all its papers (e.g., `delete category Machine Learning`)
+- `rename OLD_NAME NEW_NAME` - Rename category or subcategory (e.g., `rename Machine Learning AI`)
+- `merge CAT1,CAT2,... INTO TARGET` - Merge multiple categories into one (e.g., `merge ML,CV INTO AI`)
 - `save` - Save current state to file
 - `load` - Load previous state from file
 - `quit` - Exit program
+
+### 5. Rename Category Functionality
+
+The `rename` command allows you to change the names of existing categories and subcategories at any level:
+
+#### Rename Main Category
+```
+Enter paper title (or command): rename Machine Learning AI
+Renamed category 'Machine Learning' to 'AI'
+  Also renamed 2 subcategories
+```
+*Note: When renaming a main category, all its subcategories and sub-subcategories are automatically updated.*
+
+#### Rename Subcategory
+```
+Enter paper title (or command): rename AI:Deep Learning AI:Neural Networks
+Renamed category 'AI:Deep Learning' to 'AI:Neural Networks'
+  Also renamed 2 subcategories
+```
+*Note: When renaming a subcategory, all its sub-subcategories are automatically updated.*
+
+#### Rename Sub-subcategory
+```
+Enter paper title (or command): rename AI:Neural Networks:Convolutional Neural Networks AI:Neural Networks:CNN
+Renamed category 'AI:Neural Networks:Convolutional Neural Networks' to 'AI:Neural Networks:CNN'
+```
+
+**Important Notes:**
+- Cannot rename the Root category
+- New name must not already exist
+- All papers in the renamed category will be updated automatically
+- **All subcategories and sub-subcategories are automatically renamed to maintain hierarchy**
+- Category hierarchy relationships are completely preserved
+- Supports unlimited levels of subcategories
+- Automatic cascading updates ensure data consistency
+
+### 6. Merge Categories Functionality
+
+The `merge` command allows you to combine multiple categories into a single target category:
+
+#### Merge Main Categories
+```
+Enter paper title (or command): merge Machine Learning,Computer Vision INTO AI
+=== Merging Categories ===
+Source categories: Machine Learning, Computer Vision
+Target category: AI
+  Moving 3 papers from 'Machine Learning'
+  Moving 2 papers from 'Computer Vision'
+  Moving 4 subcategories
+    Moved subcategory 'Machine Learning:Deep Learning' to 'AI:Deep Learning'
+    Moved subcategory 'Machine Learning:Deep Learning:Neural Networks' to 'AI:Deep Learning:Neural Networks'
+    Moved subcategory 'Computer Vision:Object Detection' to 'AI:Object Detection'
+    Moved subcategory 'Computer Vision:Image Processing' to 'AI:Image Processing'
+  Deleted source category 'Machine Learning'
+  Deleted source category 'Computer Vision'
+
+✅ Successfully merged 2 categories into 'AI'
+  Total papers moved: 5
+  Total subcategories moved: 4
+```
+
+#### Merge Categories with Subcategories
+```
+Enter paper title (or command): merge AI,NLP INTO Artificial Intelligence
+=== Merging Categories ===
+Source categories: AI, NLP
+Target category: Artificial Intelligence
+  Moving 5 papers from 'AI'
+  Moving 2 papers from 'NLP'
+  Moving 6 subcategories
+    Moved subcategory 'AI:Deep Learning' to 'Artificial Intelligence:Deep Learning'
+    Moved subcategory 'AI:Deep Learning:Neural Networks' to 'Artificial Intelligence:Deep Learning:Neural Networks'
+    Moved subcategory 'AI:Object Detection' to 'Artificial Intelligence:Object Detection'
+    Moved subcategory 'AI:Image Processing' to 'Artificial Intelligence:Image Processing'
+    Moved subcategory 'NLP:Transformer Models' to 'Artificial Intelligence:Transformer Models'
+    Moved subcategory 'NLP:Language Models' to 'Artificial Intelligence:Language Models'
+  Deleted source category 'AI'
+  Deleted source category 'NLP'
+
+✅ Successfully merged 2 categories into 'Artificial Intelligence'
+  Total papers moved: 7
+  Total subcategories moved: 6
+```
+
+**Important Notes:**
+- Need at least 2 source categories to merge
+- Target category must not already exist
+- Target category name cannot conflict with existing category structure
+- **All papers are automatically moved to the target category**
+- **All subcategories (including nested ones) are automatically relocated under the target category**
+- **Deep nested structures (e.g., A:B:C:D) are preserved and properly renamed**
+- Source categories are completely removed after merging
+- Category hierarchy is automatically rebuilt
+- Paper IDs and references are preserved
+- Complete data consistency is maintained
+
+The `rename` command allows you to change the names of existing categories and subcategories at any level:
+
+#### Rename Main Category
+```
+Enter paper title (or command): rename Machine Learning AI
+Renamed category 'Machine Learning' to 'AI'
+  Also renamed 2 subcategories
+```
+*Note: When renaming a main category, all its subcategories and sub-subcategories are automatically updated.*
+
+#### Rename Subcategory
+```
+Enter paper title (or command): rename AI:Deep Learning AI:Neural Networks
+Renamed category 'AI:Deep Learning' to 'AI:Neural Networks'
+  Also renamed 2 subcategories
+```
+*Note: When renaming a subcategory, all its sub-subcategories are automatically updated.*
+
+#### Rename Sub-subcategory
+```
+Enter paper title (or command): rename AI:Neural Networks:Convolutional Neural Networks AI:Neural Networks:CNN
+Renamed category 'AI:Neural Networks:Convolutional Neural Networks' to 'AI:Neural Networks:CNN'
+```
+
+**Important Notes:**
+- Cannot rename the Root category
+- New name must not already exist
+- All papers in the renamed category will be updated automatically
+- **All subcategories and sub-subcategories are automatically renamed to maintain hierarchy**
+- Category hierarchy relationships are completely preserved
+- Supports unlimited levels of subcategories
+- Automatic cascading updates ensure data consistency
 
 ## 🎯 File Structure
 
@@ -114,10 +245,12 @@ Deleted category 'Machine Learning' and all its papers
 3. Input `show` to view tree structure
 4. Input `list` to view papers list
 5. Input `categories` to view category hierarchy
-6. Delete specific papers: `delete paper 2`
-7. Delete categories: `delete category Computer Vision`
-8. Input `save` to save current state
-9. Continue managing your paper collection...
+6. Rename categories: `rename Machine Learning AI`
+7. **Merge categories: `merge AI,Computer Vision INTO Artificial Intelligence`**
+8. Delete specific papers: `delete paper 2`
+9. Delete categories: `delete category NLP`
+10. Input `save` to save current state
+11. Continue managing your paper collection...
 
 ## 🗑️ Deletion Features
 
@@ -142,6 +275,7 @@ Deleted category 'Machine Learning' and all its papers
 - JSON-based state persistence with UTF-8 support
 - Intelligent text wrapping for long paper titles
 - Automatic category hierarchy management
+- Category renaming with automatic relationship updates
 
 ## 📱 Demo Scripts
 

@@ -285,8 +285,9 @@ class EnhancedPaperTreeClassifier:
         
         legend_elements = [
             plt.Circle((0, 0), 0.1, color='lightblue', label='Root Node'),
-            plt.Rectangle((0, 0), 0.2, 0.1, color='lightgreen', label='Main Category'),
-            plt.Rectangle((0, 0), 0.2, 0.1, color='lightyellow', label='Subcategory'),
+            plt.Rectangle((0, 0), 0.2, 0.1, color='lightgreen', label='Main Category (Level 1)'),
+            plt.Rectangle((0, 0), 0.2, 0.1, color='lightyellow', label='Subcategory (Level 2)'),
+            plt.Rectangle((0, 0), 0.2, 0.1, color='lightgoldenrodyellow', label='Deep Subcategory (Level 3+)'),
             plt.Circle((0, 0), 0.1, color='lightcoral', label='Paper Node')
         ]
         ax.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(0.98, 0.98))
@@ -301,17 +302,17 @@ class EnhancedPaperTreeClassifier:
         if not all_categories:
             return
             
-        main_categories = []
-        subcategories = []
-        
+        # Group categories by their level (number of colons)
+        categories_by_level = {}
         for cat in all_categories:
-            if ':' in cat:
-                subcategories.append(cat)
-            else:
-                main_categories.append(cat)
+            level = cat.count(':') + 1
+            if level not in categories_by_level:
+                categories_by_level[level] = []
+            categories_by_level[level].append(cat)
         
-        # Position main categories with fixed spacing
-        if main_categories:
+        # Position main categories (level 1) with fixed spacing
+        if 1 in categories_by_level:
+            main_categories = categories_by_level[1]
             if len(main_categories) == 1:
                 self.category_positions[main_categories[0]] = {'x': root_x, 'y': root_y - 5, 'level': 1}
             else:
@@ -322,14 +323,20 @@ class EnhancedPaperTreeClassifier:
                     x = start_x + i * 5
                     self.category_positions[cat] = {'x': x, 'y': root_y - 5, 'level': 1}
         
-        # Position subcategories with fixed spacing
-        if subcategories:
+        # Position subcategories (level 2 and higher) with proper spacing
+        for level in range(2, max(categories_by_level.keys()) + 1):
+            if level not in categories_by_level:
+                continue
+                
+            level_categories = categories_by_level[level]
+            
+            # Group by parent category
             parent_subcat_map = {}
-            for subcat in subcategories:
-                parent_cat = subcat.split(':')[0]
+            for cat in level_categories:
+                parent_cat = ':'.join(cat.split(':')[:-1])  # Get parent by removing last part
                 if parent_cat not in parent_subcat_map:
                     parent_subcat_map[parent_cat] = []
-                parent_subcat_map[parent_cat].append(subcat)
+                parent_subcat_map[parent_cat].append(cat)
             
             for parent_cat, subcats in parent_subcat_map.items():
                 if parent_cat not in self.category_positions:
@@ -338,18 +345,30 @@ class EnhancedPaperTreeClassifier:
                 parent_x = self.category_positions[parent_cat]['x']
                 parent_y = self.category_positions[parent_cat]['y']
                 
+                # Calculate spacing based on level (deeper levels get more spacing)
+                spacing_multiplier = 3.5 + (level - 2) * 0.5  # Level 2: 3.5, Level 3: 4.0, etc.
+                y_offset = 5 + (level - 2) * 2  # Level 2: 5, Level 3: 7, etc.
+                
                 if len(subcats) == 1:
-                    self.category_positions[subcats[0]] = {'x': parent_x, 'y': parent_y - 5, 'level': 2}
+                    self.category_positions[subcats[0]] = {
+                        'x': parent_x, 
+                        'y': parent_y - y_offset, 
+                        'level': level
+                    }
                 else:
-                    total_width_needed = len(subcats) * 4
-                    start_x = parent_x - total_width_needed / 2 + 2
+                    total_width_needed = len(subcats) * spacing_multiplier
+                    start_x = parent_x - total_width_needed / 2 + spacing_multiplier / 2
                     
                     for i, subcat in enumerate(subcats):
-                        x = start_x + i * 4
-                        self.category_positions[subcat] = {'x': x, 'y': parent_y - 5, 'level': 2}
+                        x = start_x + i * spacing_multiplier
+                        self.category_positions[subcat] = {
+                            'x': x, 
+                            'y': parent_y - y_offset, 
+                            'level': level
+                        }
     
     def _draw_categories_no_overlap(self, ax, root_y, root_x):
-        # Draw main categories
+        # Draw main categories (level 1)
         for cat_name, papers in self.tree_structure.items():
             if cat_name == "Root":
                 if papers:
@@ -379,38 +398,54 @@ class EnhancedPaperTreeClassifier:
                 if papers:
                     self._draw_category_papers(ax, papers, pos['x'], pos['y'], pos['y'] - 3)
         
-        # Draw subcategories
+        # Draw subcategories (level 2 and higher)
         for cat_name, papers in self.tree_structure.items():
-            if cat_name in self.category_positions and self.category_positions[cat_name]['level'] == 2:
+            if cat_name in self.category_positions and self.category_positions[cat_name]['level'] >= 2:
                 pos = self.category_positions[cat_name]
                 
+                # Determine box size and color based on level
+                if pos['level'] == 2:
+                    box_width, box_height = 3.0, 0.8
+                    face_color = 'lightyellow'
+                    line_width = 1.5
+                    font_size = 9
+                else:
+                    # Deeper levels get smaller boxes
+                    box_width = max(2.0, 3.0 - (pos['level'] - 2) * 0.3)
+                    box_height = max(0.6, 0.8 - (pos['level'] - 2) * 0.1)
+                    face_color = 'lightgoldenrodyellow'
+                    line_width = 1.0
+                    font_size = max(7, 9 - (pos['level'] - 2))
+                
                 subcat_rect = FancyBboxPatch(
-                    (pos['x'] - 1.5, pos['y'] - 0.4),
-                    3.0, 0.8,
+                    (pos['x'] - box_width/2, pos['y'] - box_height/2),
+                    box_width, box_height,
                     boxstyle="round,pad=0.1",
-                    facecolor='lightyellow',
+                    facecolor=face_color,
                     edgecolor='black',
-                    linewidth=1.5
+                    linewidth=line_width
                 )
                 ax.add_patch(subcat_rect)
                 
+                # Get the display name (last part of the category path)
                 subcat_name = cat_name.split(':')[-1]
                 if len(subcat_name) > 25:
-                    wrapped_name = self._wrap_text(subcat_name, 2.5)
+                    wrapped_name = self._wrap_text(subcat_name, box_width - 0.5)
                     lines = wrapped_name.split('\n')
                     for i, line in enumerate(lines):
                         line_y = pos['y'] + 0.1 - i * 0.15
                         ax.text(pos['x'], line_y, line, ha='center', va='center', 
-                               fontsize=8, weight='bold')
+                               fontsize=font_size, weight='bold')
                 else:
                     ax.text(pos['x'], pos['y'], subcat_name, ha='center', va='center', 
-                           fontsize=9, weight='bold')
+                           fontsize=font_size, weight='bold')
                 
-                parent_cat = cat_name.split(':')[0]
+                # Draw connection line to parent
+                parent_cat = ':'.join(cat_name.split(':')[:-1])  # Get parent by removing last part
                 if parent_cat in self.category_positions:
                     parent_y = self.category_positions[parent_cat]['y']
                     parent_x = self.category_positions[parent_cat]['x']
-                    ax.plot([parent_x, pos['x']], [parent_y - 0.5, pos['y'] + 0.4], 'k-', linewidth=1.5)
+                    ax.plot([parent_x, pos['x']], [parent_y - 0.5, pos['y'] + box_height/2], 'k-', linewidth=line_width)
                 
                 if papers:
                     self._draw_category_papers(ax, papers, pos['x'], pos['y'], pos['y'] - 3)
@@ -537,8 +572,38 @@ class EnhancedPaperTreeClassifier:
     
     def print_category_tree(self) -> None:
         print("\n=== Category Hierarchy ===")
+        # Rebuild category hierarchy from tree_structure to ensure consistency
+        self._rebuild_category_hierarchy()
         self._print_category_recursive("Root", 0)
         print()
+    
+    def _rebuild_category_hierarchy(self):
+        """Rebuild category hierarchy from tree_structure to ensure consistency"""
+        self.category_hierarchy = {}
+        
+        # Add Root category
+        self.category_hierarchy["Root"] = []
+        
+        # First, collect all main categories (those without colons)
+        main_categories = []
+        for category_path in self.tree_structure.keys():
+            if category_path == "Root":
+                continue
+            if ':' not in category_path:
+                main_categories.append(category_path)
+                self.category_hierarchy["Root"].append(category_path)
+                self.category_hierarchy[category_path] = []
+        
+        # Then, process all subcategories
+        for category_path in self.tree_structure.keys():
+            if category_path == "Root" or ':' not in category_path:
+                continue
+                
+            # This is a subcategory
+            parent_cat = category_path.split(':')[0]
+            if parent_cat in self.category_hierarchy:
+                if category_path not in self.category_hierarchy[parent_cat]:
+                    self.category_hierarchy[parent_cat].append(category_path)
     
     def _print_category_recursive(self, category: str, level: int):
         indent = "  " * level
@@ -568,10 +633,196 @@ class EnhancedPaperTreeClassifier:
             self.papers = state['papers']
             self.node_counter = state['node_counter']
             self.parent_nodes = state['parent_nodes']
-            self.category_hierarchy = state.get('category_hierarchy', {})
+            # Don't load the potentially corrupted category_hierarchy
+            # Instead, rebuild it from tree_structure
+            self.category_hierarchy = {}
             print(f"State loaded from {filename}")
+            print("Category hierarchy rebuilt from tree structure")
         else:
             print(f"File {filename} does not exist")
+
+    def rename_category(self, old_name: str, new_name: str) -> bool:
+        """Rename a category or subcategory with proper cascading updates"""
+        if old_name == "Root":
+            print("Cannot rename Root category")
+            return False
+            
+        if old_name not in self.tree_structure:
+            print(f"Category '{old_name}' not found")
+            return False
+            
+        if new_name in self.tree_structure:
+            print(f"Category '{new_name}' already exists")
+            return False
+            
+        # Step 1: Collect all categories that need to be renamed (including nested ones)
+        categories_to_rename = []
+        categories_to_rename.append(old_name)
+        
+        # Find all subcategories that start with old_name + ":"
+        for cat_name in list(self.tree_structure.keys()):
+            if cat_name != old_name and cat_name.startswith(old_name + ":"):
+                categories_to_rename.append(cat_name)
+        
+        # Sort by length (longest first) to ensure we rename from deepest to shallowest
+        categories_to_rename.sort(key=len, reverse=True)
+        
+        # Step 2: Create mapping of old names to new names
+        name_mapping = {}
+        for old_cat in categories_to_rename:
+            if old_cat == old_name:
+                # Main category rename
+                name_mapping[old_cat] = new_name
+            else:
+                # Subcategory rename - replace the old main category part
+                new_subcat_name = old_cat.replace(old_name + ":", new_name + ":", 1)
+                name_mapping[old_cat] = new_subcat_name
+        
+        # Step 3: Rename all categories in the tree_structure
+        for old_cat, new_cat in name_mapping.items():
+            if old_cat in self.tree_structure:
+                papers = self.tree_structure[old_cat]
+                del self.tree_structure[old_cat]
+                self.tree_structure[new_cat] = papers
+        
+        # Step 4: Update all papers' category_path
+        for paper in self.papers:
+            old_path = paper['category_path']
+            if old_path in name_mapping:
+                paper['category_path'] = name_mapping[old_path]
+        
+        # Step 5: Update parent_nodes
+        new_parent_nodes = {}
+        for paper_id, category_path in self.parent_nodes.items():
+            if category_path in name_mapping:
+                new_parent_nodes[paper_id] = name_mapping[category_path]
+            else:
+                new_parent_nodes[paper_id] = category_path
+        self.parent_nodes = new_parent_nodes
+        
+        # Step 6: Rebuild category_hierarchy completely from tree_structure
+        self._rebuild_category_hierarchy()
+        
+        print(f"Renamed category '{old_name}' to '{new_name}'")
+        if len(categories_to_rename) > 1:
+            print(f"  Also renamed {len(categories_to_rename) - 1} subcategories")
+        return True
+
+    def merge_categories(self, source_categories: List[str], target_category: str) -> bool:
+        """Merge multiple source categories into a single target category"""
+        if not source_categories:
+            print("No source categories specified for merging")
+            return False
+            
+        if len(source_categories) < 2:
+            print("Need at least 2 source categories to merge")
+            return False
+            
+        if target_category in source_categories:
+            print("Target category cannot be one of the source categories")
+            return False
+            
+        # Check if all source categories exist
+        for cat in source_categories:
+            if cat not in self.tree_structure:
+                print(f"Source category '{cat}' not found")
+                return False
+        
+        # Check if target category already exists
+        if target_category in self.tree_structure:
+            print(f"Target category '{target_category}' already exists")
+            return False
+        
+        # Check if target category name conflicts with existing subcategories
+        for existing_cat in self.tree_structure.keys():
+            if existing_cat.startswith(target_category + ":") or target_category.startswith(existing_cat + ":"):
+                print(f"Target category '{target_category}' conflicts with existing category structure")
+                return False
+        
+        print(f"\n=== Merging Categories ===")
+        print(f"Source categories: {', '.join(source_categories)}")
+        print(f"Target category: {target_category}")
+        
+        # Step 1: Create target category
+        self.tree_structure[target_category] = []
+        
+        # Step 2: Collect all papers from source categories
+        all_papers = []
+        for source_cat in source_categories:
+            papers = self.tree_structure[source_cat].copy()
+            all_papers.extend(papers)
+            print(f"  Moving {len(papers)} papers from '{source_cat}'")
+        
+        # Step 3: Move all papers to target category
+        self.tree_structure[target_category] = all_papers
+        
+        # Step 4: Update all papers' category_path
+        papers_moved = 0
+        for paper in self.papers:
+            if paper['category_path'] in source_categories:
+                paper['category_path'] = target_category
+                papers_moved += 1
+        
+        # Step 5: Update parent_nodes
+        for paper_id, category_path in self.parent_nodes.items():
+            if category_path in source_categories:
+                self.parent_nodes[paper_id] = target_category
+        
+        # Step 6: Handle subcategories (including nested ones)
+        subcategories_to_move = []
+        for source_cat in source_categories:
+            # Find all subcategories that start with source_cat + ":"
+            for cat_name in list(self.tree_structure.keys()):
+                if cat_name != source_cat and cat_name.startswith(source_cat + ":"):
+                    subcategories_to_move.append(cat_name)
+        
+        if subcategories_to_move:
+            print(f"  Moving {len(subcategories_to_move)} subcategories")
+            # Sort by length (longest first) to ensure we process from deepest to shallowest
+            subcategories_to_move.sort(key=len, reverse=True)
+            
+            for subcat in subcategories_to_move:
+                # Find which source category this subcategory belongs to
+                source_parent = None
+                for source_cat in source_categories:
+                    if subcat.startswith(source_cat + ":"):
+                        source_parent = source_cat
+                        break
+                
+                if source_parent:
+                    # Create new subcategory name under target category
+                    new_subcat_name = subcat.replace(source_parent + ":", target_category + ":", 1)
+                    
+                    # Move papers
+                    papers = self.tree_structure[subcat].copy()
+                    self.tree_structure[new_subcat_name] = papers
+                    del self.tree_structure[subcat]
+                    
+                    # Update paper category paths
+                    for paper in self.papers:
+                        if paper['category_path'] == subcat:
+                            paper['category_path'] = new_subcat_name
+                    
+                    # Update parent_nodes
+                    for paper_id, category_path in self.parent_nodes.items():
+                        if category_path == subcat:
+                            self.parent_nodes[paper_id] = new_subcat_name
+                    
+                    print(f"    Moved subcategory '{subcat}' to '{new_subcat_name}'")
+        
+        # Step 7: Delete source categories
+        for source_cat in source_categories:
+            del self.tree_structure[source_cat]
+            print(f"  Deleted source category '{source_cat}'")
+        
+        # Step 8: Rebuild category hierarchy
+        self._rebuild_category_hierarchy()
+        
+        print(f"\n✅ Successfully merged {len(source_categories)} categories into '{target_category}'")
+        print(f"  Total papers moved: {papers_moved}")
+        print(f"  Total subcategories moved: {len(subcategories_to_move)}")
+        
+        return True
 
 def main():
     classifier = EnhancedPaperTreeClassifier()
@@ -582,6 +833,8 @@ def main():
     print("Type 'show' to display tree, 'list' to show papers list")
     print("Type 'categories' to show category hierarchy")
     print("Type 'delete paper ID' to delete paper, 'delete category NAME' to delete category")
+    print("Type 'rename OLD_NAME NEW_NAME' to rename category or subcategory")
+    print("Type 'merge CAT1,CAT2,... INTO TARGET' to merge multiple categories")
     print()
     
     while True:
@@ -600,9 +853,11 @@ def main():
                 print("6. Input 'categories': show category hierarchy")
                 print("7. Input 'delete paper ID': delete paper by ID")
                 print("8. Input 'delete category NAME': delete category and all its papers")
-                print("9. Input 'save': save current state")
-                print("10. Input 'load': load previous state")
-                print("11. Input 'quit': exit program")
+                print("9. Input 'rename OLD_NAME NEW_NAME': rename category or subcategory")
+                print("10. Input 'merge CAT1,CAT2,... INTO TARGET': merge multiple categories")
+                print("11. Input 'save': save current state")
+                print("12. Input 'load': load previous state")
+                print("13. Input 'quit': exit program")
                 print()
             elif user_input.lower() == 'show':
                 classifier.visualize_tree()
@@ -626,6 +881,47 @@ def main():
                 classifier.save_state()
             elif user_input.lower() == 'load':
                 classifier.load_state()
+            elif user_input.lower().startswith('rename '):
+                try:
+                    parts = user_input.split('rename ')
+                    if len(parts) == 2:
+                        old_name, new_name = parts[1].strip().split(' ', 1)
+                        if old_name and new_name:
+                            classifier.rename_category(old_name, new_name)
+                        else:
+                            print("Invalid format for rename command. Use 'rename OLD_NAME NEW_NAME'")
+                    else:
+                        print("Invalid format for rename command. Use 'rename OLD_NAME NEW_NAME'")
+                except ValueError:
+                    print("Invalid format for rename command. Use 'rename OLD_NAME NEW_NAME'")
+            elif user_input.lower().startswith('merge '):
+                try:
+                    # Parse merge command: merge CAT1,CAT2,... INTO TARGET
+                    merge_part = user_input[6:].strip()  # Remove 'merge ' prefix
+                    if ' INTO ' not in merge_part:
+                        print("Invalid format for merge command. Use 'merge CAT1,CAT2,... INTO TARGET'")
+                        continue
+                    
+                    categories_part, target_part = merge_part.split(' INTO ', 1)
+                    source_categories = [cat.strip() for cat in categories_part.split(',')]
+                    target_category = target_part.strip()
+                    
+                    if not target_category:
+                        print("Target category cannot be empty")
+                        continue
+                    
+                    # Remove empty category names
+                    source_categories = [cat for cat in source_categories if cat]
+                    
+                    if len(source_categories) < 2:
+                        print("Need at least 2 source categories to merge")
+                        continue
+                    
+                    classifier.merge_categories(source_categories, target_category)
+                    
+                except Exception as e:
+                    print(f"Error in merge command: {e}")
+                    print("Use format: merge CAT1,CAT2,... INTO TARGET")
             elif ':' in user_input:
                 parts = user_input.split(':')
                 if len(parts) >= 2:
